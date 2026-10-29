@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Traffic Management Dashboard</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #eef2f7;
+    color: #243247;
+}
+
+header {
+    background: #12345a;
+    color: white;
+    padding: 25px;
+    text-align: center;
+}
+
+main {
+    max-width: 1200px;
+    margin: 25px auto;
+    padding: 0 20px;
+}
+
+section {
+    background: white;
+    padding: 22px;
+    margin-bottom: 22px;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px #00000012;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #dce3eb;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background: #12345a;
+    color: white;
+}
+
+.high {
+    color: #c62828;
+    font-weight: bold;
+}
+
+.moderate {
+    color: #b56b00;
+    font-weight: bold;
+}
+
+.low {
+    color: #188447;
+    font-weight: bold;
+}
+
+.alert {
+    background: #fff0f0;
+    border-left: 5px solid #d32f2f;
+    padding: 12px;
+    margin: 10px 0;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #667085;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>Smart Traffic Management Dashboard</h1>
+    <p>Intersection-Wise Congestion Monitoring System</p>
+</header>
+
+<main>
+
+<section>
+    <h2>Live Traffic Monitoring (Simulated Data)</h2>
+    <p>Vehicle threshold: 120 | Minimum speed: 20 km/h</p>
+
+    <table id="trafficTable">
+        <thead>
+            <tr>
+                <th>Intersection</th>
+                <th>Vehicle Count</th>
+                <th>Average Speed</th>
+                <th>Congestion</th>
+                <th>Signal Timing</th>
+                <th>Traffic Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>Main Junction</td>
+                <td>145</td>
+                <td>18 km/h</td>
+                <td class="high">High</td>
+                <td>Red: 60s</td>
+                <td>Congested</td>
+            </tr>
+
+            <tr>
+                <td>Central Square</td>
+                <td>80</td>
+                <td>42 km/h</td>
+                <td class="low">Low</td>
+                <td>Green: 45s</td>
+                <td>Normal</td>
+            </tr>
+
+            <tr>
+                <td>Railway Crossing</td>
+                <td>175</td>
+                <td>12 km/h</td>
+                <td class="high">High</td>
+                <td>Red: 75s</td>
+                <td>Critical</td>
+            </tr>
+
+            <tr>
+                <td>City Mall Road</td>
+                <td>110</td>
+                <td>28 km/h</td>
+                <td class="moderate">Moderate</td>
+                <td>Green: 40s</td>
+                <td>Slow</td>
+            </tr>
+
+            <tr>
+                <td>Hospital Junction</td>
+                <td>65</td>
+                <td>50 km/h</td>
+                <td class="low">Low</td>
+                <td>Green: 50s</td>
+                <td>Normal</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section>
+    <h2>Automatic Congestion Alerts</h2>
+    <div id="alerts"></div>
+</section>
+
+<section>
+    <h2>Traffic Advisories</h2>
+    <p>Drivers should avoid heavily congested intersections.</p>
+    <p>Emergency response vehicles receive priority during incidents.</p>
+</section>
+
+</main>
+
+<footer>
+    Smart Traffic Management System | DevOps Lab
+</footer>
+
+<script>
+function generateAlerts() {
+    const rows = document.querySelectorAll("#trafficTable tbody tr");
+    const alerts = document.getElementById("alerts");
+
+    alerts.innerHTML = "";
+
+    rows.forEach(row => {
+        const name = row.cells[0].textContent;
+        const count = parseInt(row.cells[1].textContent);
+        const speed = parseInt(row.cells[2].textContent);
+
+        if (count > 120 || speed < 20) {
+            const alert = document.createElement("p");
+            alert.className = "alert";
+            alert.textContent =
+                "Congestion Alert: " + name +
+                " | Vehicles: " + count +
+                " | Speed: " + speed + " km/h";
+            alerts.appendChild(alert);
+        }
+    });
+}
+
+generateAlerts();
+</script>
+
+</body>
+</html>
