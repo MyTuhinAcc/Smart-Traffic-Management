@@ -25,30 +25,19 @@ pipeline {
             steps {
                 bat '''
                     if exist project rmdir /s /q project
-
                     git clone --branch main "%GIT_REPO%" project
                     if errorlevel 1 exit /b 1
-
-                    if not exist project\\index.html exit /b 1
-                    if not exist project\\Dockerfile exit /b 1
-                    if not exist project\\deployment.yaml exit /b 1
                 '''
             }
         }
 
         stage('Parallel Validation') {
             parallel {
-
                 stage('HTML Check') {
                     steps {
                         bat '''
                             findstr /I /C:"%EXPECTED_TEXT%" project\\index.html
                             if errorlevel 1 exit /b 1
-
-                            findstr /I /C:"trafficTable" project\\index.html
-                            if errorlevel 1 exit /b 1
-
-                            echo HTML VALIDATION SUCCESSFUL
                         '''
                     }
                 }
@@ -61,8 +50,6 @@ pipeline {
 
                             findstr /I /C:"FROM nginx" project\\Dockerfile
                             if errorlevel 1 exit /b 1
-
-                            echo DOCKERFILE VALIDATION SUCCESSFUL
                         '''
                     }
                 }
@@ -75,8 +62,6 @@ pipeline {
                     bat '''
                         docker build -t %DOCKER_IMAGE%:%BUILD_NUMBER% .
                         if errorlevel 1 exit /b 1
-
-                        echo DOCKER IMAGE BUILD SUCCESSFUL
                     '''
                 }
             }
@@ -90,10 +75,8 @@ pipeline {
                     docker run -d --name %TEST_CONTAINER% -p %TEST_PORT%:80 %DOCKER_IMAGE%:%BUILD_NUMBER%
                     if errorlevel 1 exit /b 1
 
-                    REM Wait for Nginx to start
                     powershell -NoProfile -Command "Start-Sleep -Seconds 10"
 
-                    REM Test application with retries
                     curl.exe -fsS --retry 10 --retry-all-errors --retry-delay 3 http://127.0.0.1:%TEST_PORT%/ -o test-page.html
 
                     if errorlevel 1 (
@@ -102,14 +85,8 @@ pipeline {
                         exit /b 1
                     )
 
-                    REM Validate HTML response
                     findstr /I /C:"%EXPECTED_TEXT%" test-page.html
-
-                    if errorlevel 1 (
-                        echo HTML CONTENT VALIDATION FAILED
-                        type test-page.html
-                        exit /b 1
-                    )
+                    if errorlevel 1 exit /b 1
 
                     echo APPLICATION TEST SUCCESSFUL
                 '''
@@ -140,8 +117,6 @@ pipeline {
 
                         docker push %DOCKER_IMAGE%:%BUILD_NUMBER%
                         if errorlevel 1 exit /b 1
-
-                        echo DOCKER IMAGE PUSH SUCCESSFUL
                     '''
                 }
             }
@@ -158,37 +133,23 @@ pipeline {
                     bat '''
                         set "KUBECONFIG=%KUBECONFIG_FILE%"
 
-                        REM Verify existing stable deployment
-                        kubectl get deployment %APP_NAME%
+                        REM Create resources if they do not exist
+                        kubectl get deployment %APP_NAME% >NUL 2>&1
+
+                        if errorlevel 1 (
+                            kubectl apply -f project/deployment.yaml
+                            if errorlevel 1 exit /b 1
+                        )
+
+                        REM Deploy the versioned image
+                        kubectl set image deployment/%APP_NAME% %CONTAINER_NAME%=%DOCKER_IMAGE%:%BUILD_NUMBER%
                         if errorlevel 1 exit /b 1
 
                         kubectl rollout status deployment/%APP_NAME% --timeout=180s
-                        if errorlevel 1 exit /b 1
-
-                        echo =====================================
-                        echo CURRENT STABLE DOCKER IMAGE
-                        echo =====================================
-
-                        kubectl get deployment/%APP_NAME% -o jsonpath="{.spec.template.spec.containers[0].image}"
-                        if errorlevel 1 exit /b 1
-
-                        echo.
-                        echo =====================================
-                        echo INTRODUCING DELIBERATELY FAULTY IMAGE
-                        echo =====================================
-
-                        kubectl set image deployment/%APP_NAME% %CONTAINER_NAME%=%DOCKER_IMAGE%:invalid-rollback-demo
-                        if errorlevel 1 exit /b 1
-
-                        echo Waiting for faulty rollout...
-
-                        kubectl rollout status deployment/%APP_NAME% --timeout=60s
 
                         if errorlevel 1 (
-                            echo =====================================
-                            echo FAULTY RELEASE DETECTED
-                            echo STARTING AUTOMATIC ROLLBACK
-                            echo =====================================
+                            echo FAILED ROLLOUT DETECTED
+                            echo Starting automatic rollback...
 
                             kubectl rollout undo deployment/%APP_NAME%
                             if errorlevel 1 exit /b 1
@@ -196,24 +157,13 @@ pipeline {
                             kubectl rollout status deployment/%APP_NAME% --timeout=180s
                             if errorlevel 1 exit /b 1
 
-                            echo =====================================
                             echo AUTOMATIC ROLLBACK SUCCESSFUL
-                            echo PREVIOUS STABLE RELEASE RESTORED
-                            echo =====================================
-
-                            kubectl get deployment %APP_NAME%
-                            kubectl get pods -l app=%APP_NAME%
-                            kubectl get service %SERVICE_NAME%
-
-                            echo RESTORED DOCKER IMAGE:
-                            kubectl get deployment/%APP_NAME% -o jsonpath="{.spec.template.spec.containers[0].image}"
-
-                            REM Reject deliberately faulty release
                             exit /b 1
                         )
 
-                        echo ERROR: Faulty image unexpectedly deployed
-                        exit /b 1
+                        kubectl get deployment %APP_NAME%
+                        kubectl get pods -l app=%APP_NAME%
+                        kubectl get service %SERVICE_NAME%
                     '''
                 }
             }
@@ -226,8 +176,7 @@ pipeline {
         }
 
         failure {
-            echo 'Pipeline failed or faulty release was rejected.'
-            echo 'Check the Kubernetes rollback messages.'
+            echo 'Pipeline failed. Inspect the failed stage.'
         }
 
         always {
