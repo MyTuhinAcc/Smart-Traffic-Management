@@ -93,6 +93,17 @@ footer {
 <section>
     <h2>Live Traffic Monitoring (Simulated Data)</h2>
     <p>Vehicle threshold: 120 | Minimum speed: 20 km/h</p>
+    
+<label for="intersectionFilter">Filter Intersection:</label>
+<select id="intersectionFilter" onchange="filterIntersections()">
+    <option value="all">All Intersections</option>
+    <option value="Main Junction">Main Junction</option>
+    <option value="Central Square">Central Square</option>
+    <option value="Railway Crossing">Railway Crossing</option>
+    <option value="City Mall Road">City Mall Road</option>
+    <option value="Hospital Junction">Hospital Junction</option>
+</select>
+
 
     <table id="trafficTable">
         <thead>
@@ -156,8 +167,65 @@ footer {
 </section>
 
 <section>
+  
+<section>
+    <h2>Traffic Analytics</h2>
+
+    <p>
+        <strong>Total Vehicle Count:</strong>
+        <span id="totalVehicles"></span>
+    </p>
+
+    <p>
+        <strong>Highest Congestion Intersection:</strong>
+        <span id="highestCongestion"></span>
+    </p>
+</section>
+
     <h2>Automatic Congestion Alerts</h2>
     <div id="alerts"></div>
+</section>
+
+<section>
+    <h2>Traffic Incident Detection and Response</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Intersection</th>
+                <th>Incident Type</th>
+                <th>Severity</th>
+                <th>Detection Time</th>
+                <th>Response Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>Railway Crossing</td>
+                <td>Vehicle Breakdown</td>
+                <td class="high">Critical</td>
+                <td>09:15 AM</td>
+                <td>Emergency Team Dispatched</td>
+            </tr>
+
+            <tr>
+                <td>Main Junction</td>
+                <td>Traffic Accident</td>
+                <td class="high">High</td>
+                <td>09:30 AM</td>
+                <td>Police Notified</td>
+            </tr>
+
+            <tr>
+                <td>City Mall Road</td>
+                <td>Road Maintenance</td>
+                <td class="moderate">Moderate</td>
+                <td>10:05 AM</td>
+                <td>Traffic Diversion Active</td>
+            </tr>
+        </tbody>
+    </table>
 </section>
 
 <section>
@@ -197,7 +265,55 @@ function generateAlerts() {
 }
 
 generateAlerts();
+
+function filterIntersections() {
+    const selected =
+        document.getElementById("intersectionFilter").value;
+
+    const rows =
+        document.querySelectorAll("#trafficTable tbody tr");
+
+    rows.forEach(row => {
+        const name = row.cells[0].textContent.trim();
+
+        row.style.display =
+            selected === "all" || selected === name
+                ? ""
+                : "none";
+    });
+}
+
+function calculateAnalytics() {
+    const rows =
+        document.querySelectorAll("#trafficTable tbody tr");
+
+    let totalVehicles = 0;
+    let highestCount = -1;
+    let highestIntersection = "";
+
+    rows.forEach(row => {
+        const name = row.cells[0].textContent.trim();
+        const count = parseInt(row.cells[1].textContent);
+
+        totalVehicles += count;
+
+        if (count > highestCount) {
+            highestCount = count;
+            highestIntersection = name;
+        }
+    });
+
+    document.getElementById("totalVehicles").textContent =
+        totalVehicles;
+
+    document.getElementById("highestCongestion").textContent =
+        highestIntersection + " (" + highestCount + " vehicles)";
+}
+
+calculateAnalytics();
+
 </script>
+
 
 </body>
 </html>
